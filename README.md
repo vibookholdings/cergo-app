@@ -56,9 +56,9 @@ Un proyecto con PostgreSQL y tres servicios desde este repo:
 
 | Servicio | Dockerfile | Variables clave | Otros |
 |---|---|---|---|
-| `api` | `Dockerfile.server` | `SERVICE=api`, `DATABASE_URL=${{Postgres.DATABASE_URL}}`, `AUTH_SECRET`, `APP_URL`, `ELEVENLABS_*` | Pre-deploy `node apps/api/dist/migrate.js` · healthcheck `/ready` · dominio público para ElevenLabs |
+| `api` | `Dockerfile.server` | `SERVICE=api`, `DATABASE_URL=${{Postgres.DATABASE_URL}}`, `AUTH_SECRET`, `APP_URL`, `ELEVENLABS_*` | Pre-deploy `node apps/api/dist/migrate.js` (en staging, además el seed con `SEED_DEMO=true`) · healthcheck `/ready` · dominio público para ElevenLabs |
 | `worker` | `Dockerfile.server` | `SERVICE=worker`, mismas variables que la API | Sin dominio |
-| `web` | `Dockerfile.web` | `API_INTERNAL_URL=http://${{api.RAILWAY_PRIVATE_DOMAIN}}:8080` | Healthcheck `/entrar` · dominio público del panel |
+| `web` | `Dockerfile.web` | `API_INTERNAL_URL=http://${{api.RAILWAY_PRIVATE_DOMAIN}}:8080` | Healthcheck `/api/health` (panel → API → base) · dominio público del panel |
 
 La API escucha en `::` (IPv4 e IPv6) para la red privada de Railway. Las grabaciones van a un bucket S3 compatible (`S3_*`); sin bucket se guardan en disco local.
 
