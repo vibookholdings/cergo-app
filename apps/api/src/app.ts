@@ -71,6 +71,12 @@ export function createApp(deps: Deps, opts: ApiOptions = defaultOptions()) {
   }
 
   if (opts.role !== "voice") {
+    // Igual que /ready pero detrás del proxy del panel: sirve para chequear panel → API → base.
+    app.get("/api/health", async (c) => {
+      await deps.db.execute(sql`select 1`);
+      return c.json({ ok: true });
+    });
+
     // Defensa CSRF: además de SameSite=Lax, toda escritura del panel trae un header propio,
     // que un sitio ajeno no puede mandar sin pasar por CORS (y CORS no está habilitado).
     app.use("/api/*", async (c, next) => {

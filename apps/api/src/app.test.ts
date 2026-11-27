@@ -54,6 +54,12 @@ describe("API del panel", () => {
     expect(await res.json()).toEqual({ ok: true, role: "all" });
   });
 
+  it("/api/health chequea la base a través del prefijo del panel", async () => {
+    const res = await app.request("/api/health");
+    expect(res.status).toBe(200);
+    expect(await readBody<{ ok: boolean }>(res)).toEqual({ ok: true });
+  });
+
   it("login, /me y aislamiento entre hoteles", async () => {
     const fx = await setup();
     const cookie = await login("owner@lago.test");

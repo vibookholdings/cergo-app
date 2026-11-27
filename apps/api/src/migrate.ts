@@ -6,7 +6,7 @@ if (!url) throw new Error("Falta DATABASE_URL");
 const { db, close } = createDb(url, { max: 1, applicationName: "cergo-migrate" });
 try {
   await runMigrations(db);
-  console.warn("Migraciones aplicadas");
+  process.stdout.write("Migraciones aplicadas\n");
 } finally {
   await close();
 }
