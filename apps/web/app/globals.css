@@ -1,0 +1,85 @@
+@import "tailwindcss";
+
+/* Sistema de diseño de CERGO (docs/design-system.md), sacado de holacergo.com. Solo modo claro. */
+@theme {
+  --color-bg: #f7f5ef;
+  --color-bg-deep: #efece3;
+  --color-surface: #ffffff;
+  --color-surface-soft: #fbfaf6;
+  --color-ink: #202720;
+  --color-muted: #575f57;
+  --color-soft: #7a8179;
+  --color-placeholder: #9a9f98;
+  --color-line: #e2ded2;
+  --color-line-strong: #cfcabb;
+  --color-line-hover: #b7b1a0;
+  --color-brand: #234638;
+  --color-brand-deep: #1b382c;
+  --color-brand-ink: #f7f5ef;
+  --color-brand-muted: #c3cfc6;
+  --color-lime: #dce9a8;
+  --color-lime-hover: #cfe08f;
+  --color-lime-ink: #2c3a12;
+  --color-warn-bg: #f6e7d6;
+  --color-warn-ink: #7a4a16;
+  --color-error: #a1361f;
+  --color-error-bg: #f8e5df;
+  --color-error-ink: #7c2915;
+  /* Gráficos: paleta categórica validada (CVD y contraste) sobre superficie blanca. */
+  --color-series-1: #28805a;
+  --color-series-2: #7a6fd0;
+  --color-series-3: #d4782f;
+  --color-series-1-track: #dcefe5;
+  --color-grid: #ece9df;
+  --color-axis: #cfcabb;
+
+  --font-serif: "Instrument Serif", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --font-sans: "Manrope", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  --radius-chip: 8px;
+  --radius-field: 12px;
+  --radius-tile: 14px;
+  --radius-card: 20px;
+  --shadow-card: 0 1px 2px rgba(32, 39, 32, 0.04), 0 12px 32px -18px rgba(32, 39, 32, 0.18);
+}
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body {
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2 {
+  text-wrap: balance;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+::selection {
+  background: var(--color-lime);
+  color: var(--color-lime-ink);
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
