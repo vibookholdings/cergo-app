@@ -1,0 +1,16 @@
+**/node_modules
+**/.next
+**/dist
+**/.turbo
+**/coverage
+**/.data
+**/playwright-report
+**/test-results
+**/e2e/.auth
+**/*.tsbuildinfo
+.git
+.github
+.env
+.env.*
+!.env.example
+docs
