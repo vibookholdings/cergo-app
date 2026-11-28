@@ -1,0 +1,108 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Lint, tipos y tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/cergo_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - name: Tests (incluye aislamiento entre hoteles contra PostgreSQL real)
+        run: pnpm test
+
+  e2e:
+    name: Punta a punta (Playwright)
+    runs-on: ubuntu-latest
+    needs: checks
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: cergo_e2e
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/cergo_e2e
+      MIGRATIONS_DIR: ${{ github.workspace }}/packages/db/drizzle
+      APP_URL: http://localhost:3000
+      API_INTERNAL_URL: http://localhost:8080
+      AUTH_SECRET: ci-solo-para-pruebas-0123456789abcdef
+      ELEVENLABS_WEBHOOK_SECRET: ci-solo-para-pruebas
+      SEED_PASSWORD: ci-demo-password-2026
+      REQUIRE_STAFF_MFA: "false"
+      COOKIE_SECURE: "false"
+      LOG_LEVEL: warn
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build de API, worker y panel
+        run: |
+          pnpm --filter @cergo/api build
+          pnpm --filter @cergo/worker build
+          pnpm --filter @cergo/web build
+          pnpm --filter @cergo/web standalone
+      - name: Migraciones y datos de demo
+        run: |
+          node apps/api/dist/migrate.js
+          node apps/api/dist/seed.js
+      - name: Levantar el stack
+        run: |
+          (cd apps/api && nohup node dist/index.js > ../../api.log 2>&1 &)
+          (cd apps/worker && nohup node dist/index.js > ../../worker.log 2>&1 &)
+          (cd apps/web/.next/standalone/apps/web && PORT=3000 nohup node server.js > ../../../../../../web.log 2>&1 &)
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:8080/ready > /dev/null && curl -sf -o /dev/null http://localhost:3000/entrar; then echo "Listo"; exit 0; fi
+            sleep 1
+          done
+          echo "El stack no levantó"; cat api.log web.log; exit 1
+      - run: pnpm --filter @cergo/web exec playwright install --with-deps chromium
+      - run: pnpm --filter @cergo/web test:e2e
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-report
+          path: |
+            apps/web/playwright-report
+            apps/web/test-results
+            *.log
+          retention-days: 7

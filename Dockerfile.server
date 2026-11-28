@@ -1,0 +1,47 @@
+# syntax=docker/dockerfile:1.7
+# Imagen de la API y del worker (misma imagen, distinto comando).
+#   SERVICE=api    -> node apps/api/dist/index.js     (por defecto)
+#   SERVICE=worker -> node apps/worker/dist/index.js
+# Pre-deploy de la API: node apps/api/dist/migrate.js
+
+ARG NODE_IMAGE=node:22-bookworm-slim
+
+FROM ${NODE_IMAGE} AS base
+ENV PNPM_HOME=/pnpm PATH=/pnpm:$PATH COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+RUN corepack enable && corepack prepare pnpm@10.28.0 --activate
+WORKDIR /app
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json .npmrc ./
+COPY apps/api/package.json apps/api/package.json
+COPY apps/worker/package.json apps/worker/package.json
+COPY apps/web/package.json apps/web/package.json
+COPY packages/contracts/package.json packages/contracts/package.json
+COPY packages/core/package.json packages/core/package.json
+COPY packages/db/package.json packages/db/package.json
+COPY packages/integrations/package.json packages/integrations/package.json
+
+FROM base AS build
+RUN pnpm install --frozen-lockfile --filter "@cergo/api..." --filter "@cergo/worker..."
+COPY tsconfig.base.json ./
+COPY packages packages
+COPY apps/api apps/api
+COPY apps/worker apps/worker
+RUN pnpm --filter @cergo/api build && pnpm --filter @cergo/worker build
+
+FROM base AS prod-deps
+RUN pnpm install --frozen-lockfile --prod --filter "@cergo/api" --filter "@cergo/worker"
+
+FROM ${NODE_IMAGE} AS runtime
+ENV NODE_ENV=production MIGRATIONS_DIR=/app/packages/db/drizzle STORAGE_DIR=/app/.data/storage SERVICE=api
+WORKDIR /app
+COPY --from=prod-deps /app/node_modules ./node_modules
+COPY --from=prod-deps /app/apps/api/node_modules ./apps/api/node_modules
+COPY --from=prod-deps /app/apps/worker/node_modules ./apps/worker/node_modules
+COPY apps/api/package.json apps/api/package.json
+COPY apps/worker/package.json apps/worker/package.json
+COPY packages/db/drizzle ./packages/db/drizzle
+COPY --from=build /app/apps/api/dist ./apps/api/dist
+COPY --from=build /app/apps/worker/dist ./apps/worker/dist
+RUN mkdir -p /app/.data && chown -R node:node /app/.data
+USER node
+EXPOSE 8080
+CMD ["sh", "-c", "exec node apps/${SERVICE}/dist/index.js"]
