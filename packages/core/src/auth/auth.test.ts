@@ -12,6 +12,7 @@ import {
   startTotpSetup,
   verifySecondFactor,
 } from "./service";
+import { ensureStaffUser } from "./bootstrap";
 import { validateSession } from "./sessions";
 import { totpAt } from "./totp";
 import { eq, users } from "@cergo/db";
@@ -33,6 +34,26 @@ describe("ingreso y sesiones", () => {
     const session = await validateSession(deps.db, res.token);
     expect(session?.user.email).toBe("dueno@hotel.test");
     expect(await validateSession(deps.db, "token-inventado")).toBeNull();
+  });
+
+  it("alta del primer usuario del equipo: crea una vez, no pisa la clave ni toca cuentas ajenas", async () => {
+    const first = await ensureStaffUser(deps.db, { email: " Equipo@Hotel.test ", password: "clave-inicial-larga" });
+    expect(first.status).toBe("created");
+    await expect(loginWithPassword(deps, "equipo@hotel.test", "clave-inicial-larga", meta)).resolves.toMatchObject({ mfaRequired: false });
+
+    const again = await ensureStaffUser(deps.db, { email: "equipo@hotel.test", password: "otra-clave-distinta" });
+    expect(again).toEqual({ status: "exists", userId: first.userId });
+    await expect(loginWithPassword(deps, "equipo@hotel.test", "otra-clave-distinta", meta)).rejects.toThrow("Mail o contraseña incorrectos");
+
+    const owner = await createUserFixture(deps.db, { email: "dueno@hotel.test", password: "clave-super-segura" });
+    await expect(ensureStaffUser(deps.db, { email: "dueno@hotel.test", password: "clave-inicial-larga" })).resolves.toEqual({
+      status: "exists_not_staff",
+      userId: owner.id,
+    });
+    const [row] = await deps.db.select({ isStaff: users.isStaff }).from(users).where(eq(users.id, owner.id));
+    expect(row?.isStaff).toBe(false);
+
+    await expect(ensureStaffUser(deps.db, { email: "corta@hotel.test", password: "corta" })).rejects.toThrow("al menos 12");
   });
 
   it("el enlace mágico sirve una sola vez", async () => {

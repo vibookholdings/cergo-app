@@ -9,6 +9,7 @@
     "start": "node dist/index.js",
     "migrate": "node dist/migrate.js",
     "seed": "node dist/seed.js",
+    "bootstrap-staff": "node dist/bootstrap-staff.js",
     "seed:dev": "tsx src/seed.ts",
     "typecheck": "tsc -p tsconfig.json"
   },

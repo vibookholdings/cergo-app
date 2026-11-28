@@ -10,6 +10,7 @@ export * from "./auth/password";
 export * from "./auth/totp";
 export * from "./auth/sessions";
 export * from "./auth/service";
+export * from "./auth/bootstrap";
 export * from "./queue/queue";
 export * from "./agent/base-layer";
 export * from "./agent/compose";

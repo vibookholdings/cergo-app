@@ -5,7 +5,7 @@ import { defineConfig } from "tsup";
  * afuera y se instalan en la imagen. Las migraciones SQL se copian al lado del bundle.
  */
 export default defineConfig({
-  entry: ["src/index.ts", "src/migrate.ts", "src/seed.ts"],
+  entry: ["src/index.ts", "src/migrate.ts", "src/seed.ts", "src/bootstrap-staff.ts"],
   format: ["esm"],
   target: "node22",
   platform: "node",

@@ -52,11 +52,18 @@ pnpm test:e2e     # Playwright contra el stack levantado
 CI en GitHub Actions corre todo en cada pull request, incluidas las pruebas de punta a punta.
 
 ## Deploy en Railway
-Un proyecto con PostgreSQL y tres servicios desde este repo:
+Dos proyectos de Railway, cada uno con PostgreSQL, un bucket para las grabaciones y tres servicios desde este repo:
+
+| Entorno | Proyecto | Rama | Datos |
+|---|---|---|---|
+| Staging | `cergo-app` | `main` (cada merge se despliega solo) | Demo "Casa del Lago" (`SEED_DEMO=true`) |
+| Producción | `cergo-produccion` | `production` | Reales. Panel en `app.holacergo.com` |
+
+Pasar a producción = llevar `production` al commit de `main` que ya se probó en staging (`git push origin main:production`).
 
 | Servicio | Dockerfile | Variables clave | Otros |
 |---|---|---|---|
-| `api` | `Dockerfile.server` | `SERVICE=api`, `DATABASE_URL=${{Postgres.DATABASE_URL}}`, `AUTH_SECRET`, `APP_URL`, `ELEVENLABS_*` | Pre-deploy `node apps/api/dist/migrate.js` (en staging, además el seed con `SEED_DEMO=true`) · healthcheck `/ready` · dominio público para ElevenLabs |
+| `api` | `Dockerfile.server` | `SERVICE=api`, `DATABASE_URL=${{Postgres.DATABASE_URL}}`, `AUTH_SECRET`, `APP_URL`, `ELEVENLABS_*` | Pre-deploy: migraciones; en staging, además la demo (`SEED_DEMO=true`); en producción, el primer usuario del equipo CERGO (`BOOTSTRAP_STAFF_*`) · healthcheck `/ready` · dominio público para ElevenLabs |
 | `worker` | `Dockerfile.server` | `SERVICE=worker`, mismas variables que la API | Sin dominio |
 | `web` | `Dockerfile.web` | `API_INTERNAL_URL=http://${{api.RAILWAY_PRIVATE_DOMAIN}}:8080` | Healthcheck `/api/health` (panel → API → base) · dominio público del panel |
 
